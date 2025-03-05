@@ -32,7 +32,12 @@ VALUES
 (4, 'The Old Man and the Sea', 4, 1952, 11.99),
 (5, 'To the Lighthouse', 5, 1927, 13.99);
 
+GO
+
 -- Error occuring here, Create View must be the only statement in the batch
+-- FIXED using the GO Command, which sends all sql statements prior to the GO to a SQL Server instance
+-- So think of GO as a checkpoint, whichout which, all following statements that dont share 
+
 CREATE VIEW BookDetails AS
 SELECT
     b.BookID,
@@ -44,6 +49,9 @@ FROM
     Books b
 JOIN 
     Authors a ON b.AuthorID = a.AuthorID;
+    GO
+    
+
 
 CREATE VIEW RecentBooks AS
 SELECT 
@@ -55,6 +63,8 @@ FROM
     Books
 WHERE 
     PublicationYear > 1990;
+    GO
+    
 
 
 CREATE VIEW AuthorStats AS
@@ -69,6 +79,7 @@ LEFT JOIN
     Books b ON a.AuthorID = b.AuthorID
 GROUP BY 
     a.AuthorID, a.FirstName, a.LastName;
+    GO
 
 
 -- a) Retrieve all records from the BookDetails view
@@ -80,11 +91,13 @@ SELECT * FROM RecentBooks;
 -- c) Show statistics for authors
 SELECT * FROM AuthorStats;
 
+GO
 
 CREATE VIEW AuthorContactInfo AS
 SELECT AuthorID, FirstName, LastName
 FROM 
     Authors;
+    GO
 
 
 UPDATE AuthorContactInfo
@@ -104,6 +117,7 @@ CREATE TABLE BookPriceAudit (
     NewPrice DECIMAL(10,2),
     ChangeDate DATETIME DEFAULT GETDATE()
 );
+GO
 
 
 CREATE TRIGGER trg_BookPriceChange
@@ -122,6 +136,7 @@ BEGIN
         JOIN deleted d ON i.BookID = d.BookID
     END
 END;
+GO
 
 
 -- Update a book's price
@@ -134,9 +149,51 @@ SELECT * FROM BookPriceAudit;
 
 
 
-CREATE TABLE Authors (
-    AuthorID INT PRIMARY KEY,
-    FirstName VARCHAR(50),
-    LastName VARCHAR(50),
-    BirthDate DATE
+CREATE TABLE BookReviews (
+    ReviewID INT PRIMARY KEY,
+    BookID INT,
+    CustomerID NCHAR(5),
+    Rating INT,
+    ReviewText NVARCHAR(MAX),
+    ReviewDate DATE,
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID)
 );
+GO
+
+CREATE VIEW vw_BookReviewStats AS
+SELECT 
+    b.Title AS BookTitle,
+    a.Rating.AVG() AS AverageRating,
+    COUNT(a.ReviewID) AS ReviewsTotal,
+    LAST(a.ReviewDate) AS MostRecentReview
+FROM 
+    BookReviews a
+LEFT JOIN 
+    Books b ON a.BookID = b.BookID
+    GO
+
+CREATE TRIGGER tr_ValidateReviewDate ON BookReviews 
+AFTER INSERT
+AS BEGIN
+    UPDATE BookReviews
+        SET ReviewDate = GETDATE()
+        FROM BookReviews p 
+        JOIN Inserted i
+             ON p.ReviewDate = i.ReviewDate;
+END;
+GO
+
+CREATE TRIGGER tr_UpdateBookRating ON BookReviews
+AFTER INSERT
+AS BEGIN
+    ALTER TABLE Books
+    ADD AverageRating SMALLINT DEFAULT 1;
+    INSERT INTO Books.AverageRating 
+        SELECT 
+            d.Rating
+        FROM inserted i
+        JOIN deleted d ON i.Rating = d.Rating
+END;
+
+-- SMALLINT DEFAULT should work due to the INT value inherant to the Rating data type being altered
