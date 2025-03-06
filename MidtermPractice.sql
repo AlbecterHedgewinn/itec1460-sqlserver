@@ -2,11 +2,17 @@
 -- Problem 1 
 -- SQL SELECT Statements: Write a query to list all products (ProductName) with their CategoryName and SupplierName.
 
-SELECT
-    Product AS ProductName, -- I assumed we're using a hypothetical database
-    Category AS CategoryName,
-    Supplier AS SupplierName
-FROM Products;
+SELECT 
+    p.ProductName,
+    c.CategoryName,
+    s.CompanyName AS SupplierName
+FROM 
+    Products p
+    INNER JOIN Categories c ON p.CategoryID = c.CategoryID
+    INNER JOIN Suppliers s ON p.SupplierID = s.SupplierID
+ORDER BY 
+    p.ProductName;
+GO
 
 
 -- Problem 2
@@ -17,17 +23,36 @@ FROM Customers c
 LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
 WHERE o.OrderID IS NULL;
 
+-- Correct Version
+SELECT 
+    c.CustomerID, 
+    c.CompanyName
+FROM 
+    Customers c
+    LEFT JOIN Orders o ON c.CustomerID = o.CustomerID
+WHERE 
+    o.OrderID IS NULL
+ORDER BY 
+    c.CompanyName;
+GO
+
 -- Problem 3
 -- Functions and GROUP BY: List the top 5 employees by total sales amount. Include EmployeeID, FirstName, LastName, and TotalSales.
 
-SELECT TOP 5 EmployeeID, FirstName, LastName, TotalSales
-FROM employees
-ORDER BY TotalSales DESC;
-
-SELECT TOP 5 EmployeeID, FirstName, LastName, SUM(Sales) AS TotalSales
-FROM employees
-GROUP BY EmployeeID, FirstName, LastName
-ORDER BY TotalSales DESC;
+SELECT TOP 5
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+FROM 
+    Employees e
+    INNER JOIN Orders o ON e.EmployeeID = o.EmployeeID
+    INNER JOIN [Order Details] od ON o.OrderID = od.OrderID
+GROUP BY 
+    e.EmployeeID, e.FirstName, e.LastName
+ORDER BY 
+    TotalSales DESC;
+GO
 
 -- Problem 4
 -- SQL Insert Statement: Add a new product to the Products table with the following details:
@@ -49,6 +74,14 @@ VALUES ('Northwind Coffee', 1, 1, '10 boxes x 20 bags', 18.00, 39, 0, 10, 0);
 
 UPDATE Beverages SET UnitPrice = UnitPrice * 1.10;
 
+-- Updated
+UPDATE Products
+SET UnitPrice = UnitPrice * 1.10
+FROM Products p
+INNER JOIN Categories c ON p.CategoryID = c.CategoryID
+WHERE c.CategoryName = 'Beverages';
+GO
+
 -- Problem 6
 -- SQL Insert and Delete Statements:
 -- a) Insert a new order for customer VINET with today's date.
@@ -60,6 +93,27 @@ VALUES ('VINET', SYSDATE);
 DELETE FROM Orders 
 WHERE Customer = 'VINET';
 
+
+-- Altered
+INSERT INTO Orders (
+    CustomerID,
+    EmployeeID,
+    OrderDate,
+    RequiredDate
+)
+VALUES (
+    'VINET',
+    1,
+    GETDATE(),
+    DATEADD(day, 7, GETDATE())
+);
+
+DELETE FROM Orders 
+WHERE CustomerID = "Vinet";
+
+
+
+
 -- Problem 7
 -- Creating Tables: Create a new table named "ProductReviews" with the following columns:
 
@@ -69,6 +123,10 @@ WHERE Customer = 'VINET';
 -- Rating (int)
 -- ReviewText (nvarchar(max))
 -- ReviewDate (datetime)
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ProductReviews')
+    DROP TABLE ProductReviews;
+GO
 
 CREATE TABLE ProductReviews (
     ReviewID INT PRIMARY KEY,
@@ -82,6 +140,13 @@ CREATE TABLE ProductReviews (
 -- Problem 8
 -- Creating Views: Create a view named "vw_ProductSales" that shows 
 -- ProductName, CategoryName, and TotalSales (sum of UnitPrice * Quantity) for each product.
+
+
+
+IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_ProductSalesView')
+    DROP VIEW vw_ProductSalesViews;
+GO
+
 
 GO                                                          -- Remember to use GO for seperating creation blocks
 CREATE VIEW vw_ProductSalesView AS
@@ -138,3 +203,12 @@ ORDER BY EmployeeID, UniqueProductsProcessed DESC;
 -- Apparently Count Distinct is not supported in MS Access, here is a workaround:
 -- SELECT Count(*) AS DistinctCountries
 -- FROM (SELECT DISTINCT Country FROM Customers);
+
+SELECT TOP 1 E.EmployeeID, E.FirstName, E.LastName, COUNT(P.ProductID) AS UniqueProductsProcessed
+FROM EmployeeSales AS E
+INNER JOIN 
+    (SELECT EmployeeID, ProductID FROM EmployeeSales GROUP BY EmployeeID, ProductID) 
+    AS P
+    ON E.EmployeeID = P.EmployeeID
+GROUP BY E.EmployeeID, E.FirstName, E.LastName
+ORDER BY UniqueProductsProcessed DESC;

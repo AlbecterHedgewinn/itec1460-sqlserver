@@ -197,3 +197,32 @@ AS BEGIN
 END;
 
 -- SMALLINT DEFAULT should work due to the INT value inherant to the Rating data type being altered
+
+
+
+
+
+-- Feedback on the code
+-- First, add the AverageRating column to Books table (do this outside the trigger)
+ALTER TABLE Books
+ADD AverageRating DECIMAL(3,2) DEFAULT 0;
+
+-- Then fix the trigger
+GO
+CREATE TRIGGER tr_UpdateBookRating ON BookReviews
+AFTER INSERT, UPDATE, DELETE
+AS BEGIN
+    -- Calculate and update the average rating for affected books
+    UPDATE Books
+    SET AverageRating = (
+        SELECT AVG(CAST(Rating AS DECIMAL(3,2)))
+        FROM BookReviews
+        WHERE BookReviews.BookID = Books.BookID
+    )
+    -- Only update books that were affected by the trigger operation
+    WHERE BookID IN (
+        SELECT BookID FROM inserted
+        UNION
+        SELECT BookID FROM deleted
+    );
+END;
