@@ -162,53 +162,54 @@ JOIN
     OrderDetails AS o ON p.ProductID = o.ProductID
 GROUP BY
     p.ProductName, c.CategoryName;
+    GO
 
 -- Problem 9
 -- Stored Procedures: Write a stored procedure named "sp_TopCustomersByCountry" 
 -- that takes a country name as input and returns the top 3 customers by total order amount for that country.
 
+IF EXISTS (SELECT * FROM sys.procedures WHERE name = 'sp_TopCustomersByCountry')
+    DROP PROCEDURE sp_TopCustomersByCountry;
 GO
+
 CREATE PROCEDURE sp_TopCustomersByCountry
-    @CountryName NVARCHAR(255)
+    @CountryName nvarchar(15)
 AS
 BEGIN
+    SET NOCOUNT ON;         -- Unnecessary but provides efficiency
+    
     SELECT TOP 3
-        CustomerName,
-        SUM(TotalOrderAmount) AS TotalSpending
-    FROM
-        Customers
-    JOIN
-        Orders ON Customers.CustomerID = Orders.CustomerID
-    WHERE
-        Customers.Country = @CountryName
-    GROUP BY
-        CustomerName
-    ORDER BY
-        TotalSpending DESC;
+        c.CustomerID,
+        c.CompanyName,
+        SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalOrderAmount
+    FROM 
+        Customers c
+        INNER JOIN Orders o ON c.CustomerID = o.CustomerID
+        INNER JOIN [Order Details] od ON o.OrderID = od.OrderID
+    WHERE 
+        c.Country = @CountryName
+    GROUP BY 
+        c.CustomerID, c.CompanyName
+    ORDER BY 
+        TotalOrderAmount DESC;
 END;
+GO
 
 -- Problem 10
 -- Complex Query: Write a query to find the employee who has processed orders for the most unique products. 
 -- Display the EmployeeID, FirstName, LastName, and the count of unique products they've processed.
 
 SELECT TOP 1
-    EmployeeID,
-    FirstName,
-    LastName,
-    COUNT(DISTINCT ProductID) AS UniqueProductsProcessed
-FROM Employeess
-GROUP BY FirstName, LastName
-ORDER BY EmployeeID, UniqueProductsProcessed DESC;
-
--- Apparently Count Distinct is not supported in MS Access, here is a workaround:
--- SELECT Count(*) AS DistinctCountries
--- FROM (SELECT DISTINCT Country FROM Customers);
-
-SELECT TOP 1 E.EmployeeID, E.FirstName, E.LastName, COUNT(P.ProductID) AS UniqueProductsProcessed
-FROM EmployeeSales AS E
-INNER JOIN 
-    (SELECT EmployeeID, ProductID FROM EmployeeSales GROUP BY EmployeeID, ProductID) 
-    AS P
-    ON E.EmployeeID = P.EmployeeID
-GROUP BY E.EmployeeID, E.FirstName, E.LastName
-ORDER BY UniqueProductsProcessed DESC;
+    e.EmployeeID,
+    e.FirstName,
+    e.LastName,
+    COUNT(DISTINCT od.ProductID) AS UniqueProductsCount
+FROM 
+    Employees e
+    INNER JOIN Orders o ON e.EmployeeID = o.EmployeeID
+    INNER JOIN [Order Details] od ON o.OrderID = od.OrderID
+GROUP BY 
+    e.EmployeeID, e.FirstName, e.LastName
+ORDER BY 
+    UniqueProductsCount DESC;
+GO
