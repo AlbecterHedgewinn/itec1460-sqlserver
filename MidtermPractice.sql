@@ -3,10 +3,10 @@
 -- SQL SELECT Statements: Write a query to list all products (ProductName) with their CategoryName and SupplierName.
 
 SELECT
-    Products AS ProductName, -- I assumed we're using a hypothetical database
-    Categories AS CategoryName,
-    Suppliers AS SupplierName
-FROM Products
+    Product AS ProductName, -- I assumed we're using a hypothetical database
+    Category AS CategoryName,
+    Supplier AS SupplierName
+FROM Products;
 
 
 -- Problem 2
@@ -22,6 +22,11 @@ WHERE o.OrderID IS NULL;
 
 SELECT TOP 5 EmployeeID, FirstName, LastName, TotalSales
 FROM employees
+ORDER BY TotalSales DESC;
+
+SELECT TOP 5 EmployeeID, FirstName, LastName, SUM(Sales) AS TotalSales
+FROM employees
+GROUP BY EmployeeID, FirstName, LastName
 ORDER BY TotalSales DESC;
 
 -- Problem 4
@@ -127,4 +132,9 @@ SELECT TOP 1
     LastName,
     COUNT(DISTINCT ProductID) AS UniqueProductsProcessed
 FROM Employeess
+GROUP BY FirstName, LastName
 ORDER BY EmployeeID, UniqueProductsProcessed DESC;
+
+-- Apparently Count Distinct is not supported in MS Access, here is a workaround:
+-- SELECT Count(*) AS DistinctCountries
+-- FROM (SELECT DISTINCT Country FROM Customers);
