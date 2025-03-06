@@ -1,1 +1,1 @@
--- Refer to the Stored Procedure Files order_total_procedure & 
+-- Refer to the Stored Procedures File order_total_procedure
