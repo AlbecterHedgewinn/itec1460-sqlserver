@@ -1,6 +1,2 @@
-The total amount for Order 10248 is $440.00
-Returned total amount: $440.00
-Order 99999 not found.
-Returned total amount: $0.00
-Queso Cabrales needs reordering! Stock: 22, Reorder Level: 30
-Needs Reorder: 1
+Msg 207, Level 16, State 1, Server 5c994a4b1b39, Line 7
+Invalid column name 'SupplierName'.
