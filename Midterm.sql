@@ -235,7 +235,18 @@ Include CustomerID, TotalFreightCost, NumberOfOrders, and AverageFreightPerOrder
 
 SELECT TOP 5
     OrderID,
-    NumberOfOrders
+    COUNT(DISTINCT OrderID) AS NumberOfOrders,
+    Freight AS TotalFreightCost,
+    AVG(Freight) AS AverageFreightPerOrder
 FROM Orders
+GROUP BY OrderID
 ORDER BY TotalFreightCost;
 GO
+
+-- This one was a doozy due to semantics. To begin with, I assumed you wanted the total number of orders rather than the quantity of all orders
+-- I actually wasn't sure what you wanted for FreightCost, since the ERDs conflict heavily. Some have a Freight whereas others dont,
+-- And I think none of them have a Cost per Freight, so I thought about subbing for UnitPrice and Quantity
+-- SUM((SELECT Quantity FROM OrderDetails WHERE Orders.OrderID = OrderDetails.OrderID) * (SELECT UnitPrice FROM OrderDetails WHERE Orders.OrderID = OrderDetails.OrderID)) as TotalFreightCost
+-- I eventually concluded that although the definition of Freight is bulk transportation and weight, that the Freight value contains the cost
+-- -of its total size/weight rather than the actual size/weight
+-- I didn't get to test if that SUM function would have worked, but I assumed you wanted a subquery, and that would've fit the bill xD
