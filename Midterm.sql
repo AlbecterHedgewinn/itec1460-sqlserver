@@ -140,6 +140,7 @@ Remove the product "Minneapolis Pizza".
 */
 
 DELETE FROM Products WHERE ProductName = 'Minneapolis Pizza';
+GO
 
 /*
 7. Creating Tables and Constraints:
